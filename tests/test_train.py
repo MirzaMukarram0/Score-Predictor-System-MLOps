@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 
 
 def _dump_dummy_model(tmp_path):
-    """Train a tiny model and pickle it to tmp_path/student_model.pkl"""
+    """Train a tiny model and pickle it to tmp_path/student_model.pkl."""
     X = np.array(
         [
             [1, 60, 50, 0],
@@ -27,9 +27,13 @@ def _dump_dummy_model(tmp_path):
 
 
 def _reload_server_with_model_path(model_path):
-    """Ensure environment variable is set BEFORE importing app.server"""
+    """Set MODEL_PATH env var before importing app.server.
+
+    This ensures the server module loads the test model instead of any
+    committed model on disk.
+    """
     os.environ["MODEL_PATH"] = model_path
-    # remove loaded module if present so before_first_request uses new MODEL_PATH
+    # remove loaded module if present so importlib reloads it fresh
     sys.modules.pop("app.server", None)
     return importlib.import_module("app.server")
 
@@ -54,7 +58,10 @@ def test_predict_bad_input(tmp_path):
     client = server.app.test_client()
 
     # missing "features" -> 400
-    resp = client.post("/predict", json={"foo": "bar"})
+    resp = client.post(
+        "/predict",
+        json={"foo": "bar"},
+    )
     assert resp.status_code == 400
     data = resp.get_json()
     assert "error" in data

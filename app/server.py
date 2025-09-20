@@ -24,7 +24,10 @@ def predict():
     features = data["features"]
     try:
         prediction = model.predict([features])
-        return jsonify({"prediction": float(prediction[0])})  # unwrap to float ✅
+        # unwrap numpy array -> float, keep under 79 chars
+        return jsonify(
+            {"prediction": float(prediction[0])}
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
