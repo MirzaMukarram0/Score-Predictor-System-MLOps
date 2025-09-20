@@ -4,3 +4,4 @@ scikit-learn==1.5.1
 matplotlib==3.9.2
 flask==2.3.3        # only if you plan to add the Flask app now
 pytest==8.3.3       # add this
+flake8==7.1.1

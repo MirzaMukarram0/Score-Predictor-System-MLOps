@@ -1,0 +1,46 @@
+pipeline {
+  agent any
+  environment {
+    DOCKERHUB_CREDENTIALS = 'dockerhub-creds'  // ID from Jenkins credentials
+    IMAGE_NAME = "mukarram12/score-predictor"
+  }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Build') {
+      steps {
+        script {
+          def tag = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.substring(0,7)}"
+          sh "docker build -t ${IMAGE_NAME}:${tag} ."
+          sh "docker tag ${IMAGE_NAME}:${tag} ${IMAGE_NAME}:latest"
+        }
+      }
+    }
+    stage('Push') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", passwordVariable: 'PWD', usernameVariable: 'USER')]) {
+          sh "echo $PWD | docker login -u $USER --password-stdin"
+          sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}-${env.GIT_COMMIT.substring(0,7)}"
+          sh "docker push ${IMAGE_NAME}:latest"
+        }
+      }
+    }
+  }
+  post {
+    success {
+      emailext (
+        to: 'i222488@nu.edu.pk',
+        subject: "Jenkins: Build SUCCESS ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: "Build & push succeeded. Image: ${IMAGE_NAME}:latest"
+      )
+    }
+    failure {
+      emailext (
+        to: 'i222488@nu.edu.pk',
+        subject: "Jenkins: Build FAILED ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: "Build failed. Please check Jenkins logs."
+      )
+    }
+  }
+}
